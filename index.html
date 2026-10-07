@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Item Stock Manager V25</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f5f7;color:#17202a}
+header{background:#1565c0;color:white;padding:18px 16px;text-align:center}
+header h1{margin:0;font-size:22px} header small{opacity:.9}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px;background:white;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0001}
+nav button{border:0;background:#e8eef5;padding:10px 4px;border-radius:8px;font-size:12px}
+nav button.active{background:#1565c0;color:white}
+main{padding:12px;max-width:700px;margin:auto}.page{display:none}.page.active{display:block}
+.card{background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px #00000010}
+h2{font-size:18px;margin:4px 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:4px}
+input,select{width:100%;padding:11px;border:1px solid #ccd3da;border-radius:8px;font-size:15px;background:white}
+.full{grid-column:1/-1}.btn{width:100%;padding:12px;border:0;border-radius:9px;background:#1565c0;color:white;font-size:16px;font-weight:bold;margin-top:10px}
+.btn.green{background:#2e7d32}.btn.red{background:#c62828}.btn.gray{background:#607d8b}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:15px;border-radius:10px;background:#e3f2fd;text-align:center}.stat b{display:block;font-size:22px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #eee;text-align:right}th{background:#f0f3f6}
+.msg{padding:10px;border-radius:8px;margin-bottom:10px;display:none}.ok{background:#e8f5e9;color:#1b5e20}.err{background:#ffebee;color:#b71c1c}
+.search{margin-bottom:10px;direction:ltr;text-align:left;unicode-bidi:plaintext}
+.note{font-size:12px;color:#607d8b;line-height:1.6}
+@media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}nav button{font-size:11px}}
+
+.lotrow{display:grid!important;grid-template-columns:minmax(0,1fr) 85px 105px 38px!important;gap:6px!important;align-items:center;margin-bottom:7px!important}
+.lotrow label{display:none!important}.lotrow select,.lotrow input{padding:9px!important;font-size:14px!important}
+.lotrow .lotdetail{width:100%}.lotrow .removeLot{border:0;border-radius:7px;padding:8px;background:#c62828;color:white;font-weight:bold}
+.lothead{display:grid;grid-template-columns:minmax(0,1fr) 85px 105px 38px;gap:6px;font-size:11px;color:#607d8b;margin-bottom:4px}
+@media(max-width:420px){.lotrow{grid-template-columns:minmax(0,1fr) 68px 85px 34px!important}.lothead{grid-template-columns:minmax(0,1fr) 68px 85px 34px}}
+
+#issue .grid > div:has(#icolor),#issue .grid > div:has(#iunit),#issue .grid > div:has(#ifabric),#issue .grid > div:has(#iqty){display:none!important}
+#issue .lotrow{grid-template-columns:minmax(0,1fr) 78px minmax(80px,120px) 32px!important}
+#issue .lothead{grid-template-columns:minmax(0,1fr) 78px minmax(80px,120px) 32px!important}
+#issue .lotrow select,#issue .lotrow input{font-size:14px;padding:8px!important}
+#issue h2{margin-bottom:10px}
+
+#issue .grid > div:has(#ino),
+#issue .grid > div:has(#iunit),
+#issue .grid > div:has(#ito),
+#issue .grid > div:has(#itooltip),
+#issue .grid > div:has(#iremark){display:none!important}
+#issue .lotrow{grid-template-columns:minmax(0,1fr) 95px 34px!important}
+#issue .lothead{grid-template-columns:minmax(0,1fr) 95px 34px!important}
+#issue .lotrow .lotdetail{display:none!important}
+#issue .lotrow select,#issue .lotrow input{font-size:15px;padding:9px!important}
+
+#issue #lotItems,
+#issue .lothead,
+#issue .lotrow{
+  direction:ltr!important;
+  text-align:left!important;
+}
+#issue .lotrow select,
+#issue .lotrow input{
+  direction:ltr!important;
+  text-align:left!important;
+}
+#issue .lotrow select{
+  text-align:left!important;
+}
+#issue .lothead{
+  text-align:left!important;
+}
+#issue #icolor{display:block!important;width:100%!important;direction:ltr!important;text-align:left!important}
+#issue .grid > div:has(#icolor){display:block!important}
+#fabrics table button{border:0;border-radius:6px;padding:6px 9px;background:#c62828;color:white}
+#backupStatus{font-size:12px;color:#607d8b;margin-top:8px}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+<header><h1>Item Stock Manager</h1><small>Item Receiving • Issue • Stock • Backup</small></header>
+<nav>
+<button class="active" onclick="show('home',this)">ہوم</button>
+<button onclick="show('receive',this)">Receive</button>
+<button onclick="show('issue',this)">Issue</button>
+<button onclick="show('stock',this)">Stock</button><button onclick="show('fabrics',this)">Items</button>
+</nav>
+<main>
+<div id="msg" class="msg"></div>
+
+<section id="home" class="page active">
+<div class="card"><h2>خوش آمدید</h2><p class="note">موبائل سے Item کی Receiving اور Issue درج کریں۔ Stock خودکار طور پر حساب ہوگا۔</p></div>
+<div class="statgrid">
+<div class="stat">کل Item Items<b id="sItems">0</b></div>
+<div class="stat">کل Stock<b id="sStock">0</b></div>
+<div class="stat">Total Receives<b id="sRec">0</b></div>
+<div class="stat">Total Issues<b id="sIss">0</b></div>
+</div>
+<div class="card"><h2>Install / Home Screen</h2>
+<button id="installApp" class="btn" style="margin-top:0">📱 Add Fabric Stock Manager to Home Screen</button>
+<p id="installStatus" class="note" style="margin-top:8px">اگر یہ فائل <b>HTTPS</b> سے کھلی ہے تو اوپر والا بٹن native install چلا دے گا۔ Downloaded <b>content://</b> HTML میں Android native PWA install prompt دستیاب نہیں ہوتا؛ وہاں Browser menu ⋮ → Add to Home screen استعمال کریں۔</p>
+</div>
+<div class="card"><h2>Backup / Restore</h2>
+<button class="btn green" onclick="backup()">⬇ Backup Download کریں</button>
+<button class="btn gray" onclick="document.getElementById('restore').click()">⬆ Backup Restore کریں</button>
+<input id="restore" type="file" accept=".json,application/json" style="display:none" onchange="restore(event)">
+<p class="note">Backup میں Items، Colors اور تمام Receive/Issue transactions محفوظ ہوں گے۔ فائل محفوظ جگہ پر رکھیں۔</p>
+<div id="backupStatus">Backup: تیار ہے</div>
+</div>
+</section>
+
+<section id="receive" class="page">
+<div class="card"><h2>Fabric Receiving</h2>
+<div class="grid">
+<div><label>Date</label><input id="rdate" type="date"></div>
+<div><label>Receiving Transaction ID</label><input id="rtid" readonly dir="ltr"></div>
+<div><label>Receive No.</label><input id="rno" placeholder="RCV-0001"></div>
+<div class="full"><label>Fabric Name</label><select id="rfabric"></select></div>
+<div><label>Supplier</label><input id="rsupplier" placeholder="Supplier Name"></div>
+<div><label>Lot No.</label><input id="rlot" placeholder="Lot No."></div>
+<div class="full"><label>Quantity</label><input id="rqty" type="number" min="0" step="0.01" placeholder="500"></div>
+</div>
+<button class="btn green" onclick="receive()">Fabric Receive Save کریں</button>
+</div>
+</section>
+
+<section id="issue" class="page">
+<div class="card"><h2>Lot Issue</h2>
+<div class="grid">
+<div><label>Date</label><input id="idate" type="date"></div>
+<div><label>Issue Transaction ID</label><input id="itid" readonly dir="ltr"></div><div><label>Issue No.</label><input id="ino" placeholder="ISS-0001"></div>
+<div style="display:none"><label>Fabric Name</label><select id="ifabric"></select></div>
+<div><label>Color</label><select id="icolor"><option value="">Select Color</option></select></div>
+<div><label>Lot No.</label><input id="ilot" placeholder="Lot No."></div>
+<div style="display:none"><label>Quantity</label><input id="iqty" type="number" min="0" step="0.01"></div>
+<div><label>Unit</label><select id="iunit"><option>Meter</option><option>Kg</option><option>Yard</option><option>Piece</option></select></div>
+<div><label>Issued To</label><input id="ito" placeholder="Production"></div>
+<div class="full">
+<label>Items</label>
+<div id="lotItems"></div>
+<button type="button" class="btn gray" onclick="addLotItem()">+ Add Item</button><div id="lotTotal" class="note" style="text-align:left;font-weight:bold">Total: 0 KG</div>
+<p class="note">Add item and KG.</p>
+</div>
+<div class="full"><label>Note</label><input id="itooltip" placeholder="مثلاً خاص نوٹ، تفصیل یا ہدایت"></div>
+<div class="full"><label>Remarks</label><input id="iremark" placeholder="اختیاری"></div>
+</div>
+<button class="btn red" onclick="issue()">Issue Save کریں</button></div>
+</section>
+
+<section id="fabrics" class="page">
+<div class="card"><h2>Fabric Master</h2>
+<p class="note">Receive اور Issue میں Fabric اسی فہرست سے منتخب ہوگا۔ آپ نیا Fabric خود Add کر سکتے ہیں اور ضرورت نہ ہو تو Fabric Delete بھی کر سکتے ہیں۔</p>
+<div class="grid">
+<div class="full"><label>نیا Fabric Name</label><input id="newItem" placeholder="مثلاً Rib Item"></div>
+<div class="full"><button class="btn green" onclick="addItem()">+ نیا Fabric Add کریں</button></div>
+</div>
+<div style="overflow:auto"><table><thead><tr><th>Fabric</th><th>Colors</th><th>Action</th></tr></thead><tbody id="fabricBody"></tbody></table></div>
+</div>
+
+<div class="card"><h2>Color Master</h2>
+<p class="note">یہاں آپ نیا Color خود Add کر سکتے ہیں اور پہلے سے موجود Color کو Delete بھی کر سکتے ہیں۔ یہی Color Receive اور Issue دونوں میں استعمال ہوگا۔</p>
+<div class="grid">
+<div class="full"><label>New Color Name</label><input id="newColor" placeholder="مثلاً Navy Blue"></div>
+<div class="full"><button class="btn green" onclick="addColor()">+ نیا Color Add کریں</button></div>
+</div>
+<div style="overflow:auto"><table><thead><tr><th>Color</th><th>Action</th></tr></thead><tbody id="colorBody"></tbody></table></div>
+</div>
+</section>
+
+<section id="stock" class="page">
+<div class="card"><h2>Current Stock</h2><input class="search" id="search" oninput="renderStock()" placeholder="Search Fabric / Color / Lot">
+<div style="overflow:auto"><table><thead><tr><th>Item</th><th>Color</th><th>Lot</th><th>Unit</th><th>Stock</th></tr></thead><tbody id="stockBody"></tbody></table></div></div>
+<div class="card"><h2>Transaction History / Print</h2>
+<div class="grid" style="margin-bottom:12px">
+<div><label>Transaction ID سے Print کریں</label><input id="printTid" placeholder="مثلاً T000001.RCV یا T000001.ISS" dir="ltr" inputmode="text" autocomplete="off"></div>
+<div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap"><button class="btn green" onclick="printTransactionById()">🖨 Transaction Print کریں</button><button class="btn" onclick="shareTransactionById()">📤 Share Transaction</button></div>
+</div>
+<div class="note">کسی بھی Receiving یا Issue Transaction ID کو لکھ کر Print یا Share کریں۔ Share دبانے سے فون کا Share menu کھلے گا، جہاں WhatsApp وغیرہ منتخب کر سکتے ہیں۔</div>
+<div style="overflow:auto"><table><thead><tr><th>Transaction ID</th><th>Date</th><th>Type</th><th>Item</th><th>Qty</th><th>Details</th><th>Print</th><th>Share</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
+</section>
+</main>
+
+<script>
+const KEY='fabric_stock_v2';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"transactions":[],"fabrics":[]}');
+if(!Array.isArray(db.fabrics)) db.fabrics=[];
+if(!Array.isArray(db.colors)) db.colors=[];
+if(!Array.isArray(db.deletedFabrics)) db.deletedFabrics=[];
+if(!Array.isArray(db.deletedColors)) db.deletedColors=[];
+
+const COMMON_COLORS = [
+  'White','Off White','Cream','Ivory','Black','Jet Black','Grey','Light Grey','Dark Grey',
+  'Silver','Charcoal','Ash','Beige','Camel','Khaki','Brown','Chocolate','Coffee','Tan',
+  'Maroon','Burgundy','Red','Dark Red','Scarlet','Wine','Pink','Baby Pink','Hot Pink','Rose',
+  'Peach','Coral','Orange','Rust','Mustard','Yellow','Lemon','Golden','Gold',
+  'Green','Light Green','Dark Green','Olive','Bottle Green','Mint','Sea Green','Pistachio',
+  'Blue','Sky Blue','Light Blue','Royal Blue','Navy Blue','Dark Blue','Turquoise','Teal',
+  'Purple','Violet','Lavender','Lilac','Magenta','Fuchsia',
+  'Beige Melange','Grey Melange','Blue Melange','Green Melange','Black Melange',
+  'Natural','Natural White','Multi Color'
+];
+
+// Remove the old built-in names from earlier versions.
+const OLD_FABRIC_NAMES=['3 Fleece','2 Fleece','1*1 L Rib','2*1 L Rib','Jersey','L. Jersey','P.K','L.PK','Slub Jersey','I.Lock','3/8 Twill Tape','1/2 Twill Tape','5/8 Twill Tape','3/8 Dore','1/2 Dore','5/8 Dore','Twill Item'];
+db.fabrics=db.fabrics.filter(f=>!OLD_FABRIC_NAMES.includes(f));
+
+const STANDARD_FABRICS=['Single Jersey', 'Single Jersey Lycra', 'Heavy Jersey', 'Double Jersey', '1x1 Rib', '2x2 Rib', '1x1 Rib Lycra', '2x2 Rib Lycra', 'Flat Back Rib', 'Interlock', 'Interlock Lycra', 'Pique', 'Single Pique', 'Double Pique', 'Honeycomb Pique', 'Lycra Pique', 'Lacoste', 'Single Lacoste', 'Double Lacoste', 'French Terry', 'French Rib', 'Fleece', 'Brushed Fleece', 'Unbrushed Fleece', 'Polar Fleece', 'Baby Fleece', 'Terry Fleece', 'Micro Fleece', 'Waffle Knit', 'Thermal', 'Jacquard', 'Single Jacquard', 'Double Jacquard', 'Jacquard Pique', 'Engineered Stripe', 'Auto Stripe', 'Feeder Stripe', 'Melange Jersey', 'Slub Jersey', 'Pointelle', 'Mesh', 'Power Mesh', 'Eyelet Mesh', 'Dry-Fit / Wicking', 'Poly-Spandex', 'Ponte Roma', 'Velour', 'Lycra Interlock', 'Twill Tape', 'Dore', 'Lace / Tricot'];
+
+// Keep standard fabrics plus user-added fabrics, but permanently remember
+// standard fabrics that the user intentionally deletes.
+const deletedSet=new Set(db.deletedFabrics.map(x=>String(x).toLowerCase()));
+db.fabrics=[...new Set([...STANDARD_FABRICS,...db.fabrics])]
+  .filter(f=>!deletedSet.has(String(f).toLowerCase()));
+localStorage.setItem(KEY,JSON.stringify(db));
+
+// Keep historical transaction names intact, but normalize older spellings where applicable.
+const FABRIC_NAME_FIXES={
+  'fleece 3':'Fleece',
+  'FLEECE 3':'Fleece'
+};
+db.transactions.forEach(t=>{
+  if(FABRIC_NAME_FIXES[t.fabric]) t.fabric=FABRIC_NAME_FIXES[t.fabric];
+  if(Array.isArray(t.items)) t.items.forEach(x=>{
+    if(FABRIC_NAME_FIXES[x.fabric]) x.fabric=FABRIC_NAME_FIXES[x.fabric];
+  });
+});
+db.colors.forEach(x=>{if(FABRIC_NAME_FIXES[x.item])x.item=FABRIC_NAME_FIXES[x.item];});
+// This app manages fabric quantity in KG. Normalize old Receive records
+// that were created by earlier versions with the temporary 'Meter' label.
+db.transactions.forEach(t=>{
+  if(t.type==='RECEIVE') t.unit='Kg';
+});
+localStorage.setItem(KEY,JSON.stringify(db));
+
+const today=new Date().toISOString().slice(0,10);
+document.querySelectorAll('input[type=date]').forEach(x=>x.value=today);
+function normalizeTid(input){
+  let s=String(input??'').trim();
+  // Convert common Urdu/Arabic digits to ASCII digits and remove accidental spaces.
+  const map={'۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9','٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+  s=s.replace(/[۰-۹٠-٩]/g,ch=>map[ch]||ch).replace(/\s+/g,'').toUpperCase();
+  s=s.replace(/[|:/_-]+/g,'.');
+  // Accept common spoken/typed variants.
+  s=s.replace(/\.TRANSACTION$/,'').replace(/\.(RECEIVE|RECEIVING|REC)$/,'.RCV').replace(/\.(ISSUE|ISSUANCE|ISU)$/,'.ISS');
+  if(/^T\d{1,6}$/.test(s)) s='T'+s.slice(1).padStart(6,'0');
+  const m=s.match(/^T(\d{1,6})\.(RCV|ISS)$/);
+  if(m)s='T'+m[1].padStart(6,'0')+'.'+m[2];
+  return s;
+}
+function transactionNumber(tid){
+  const s=normalizeTid(tid);
+  let m=s.match(/^T(\d{6})\.(?:RCV|ISS)$/);
+  if(m)return parseInt(m[1],10);
+  // Legacy IDs from older versions.
+  m=s.match(/^T(\d{6})\.TR$/);
+  if(m)return parseInt(m[1],10);
+  m=s.match(/-(\d{6})$/);
+  return m?parseInt(m[1],10):NaN;
+}
+function nextTransactionId(type){
+  // IMPORTANT: Receiving and Issue use independent counters.
+  // Example: T000001.RCV and T000001.ISS can both exist and are different transactions.
+  const suffix=type==='RECEIVE'?'RCV':'ISS';
+  let max=0;
+  db.transactions.forEach(t=>{
+    const id=normalizeTid(t.tid);
+    const m=id.match(new RegExp('^T(\\d{6})\\.'+suffix+'$'));
+    if(m)max=Math.max(max,parseInt(m[1],10));
+  });
+  return 'T'+String(max+1).padStart(6,'0')+'.'+suffix;
+}
+function findTransactionRows(input){
+  const raw=String(input??'').trim();
+  const id=normalizeTid(raw);
+  if(!id)return [];
+  // Exact canonical ID matching. A bare T000001 is accepted only when it maps
+  // to exactly one transaction; if both Receive and Issue exist, the suffix is required.
+  let rows=db.transactions.filter(t=>normalizeTid(t.tid)===id);
+  if(rows.length)return rows;
+  if(/^T\d{6}$/.test(id)){
+    const candidates=db.transactions.filter(t=>{
+      const x=normalizeTid(t.tid);
+      return x.startsWith(id+'.');
+    });
+    if(candidates.length===1)return candidates;
+  }
+  return [];
+}
+function migrateTransactionIds(){
+  // Convert every legacy .TR ID into separate Receive/Issue IDs.
+  // The numeric part is preserved, so old records remain traceable.
+  db.transactions.forEach(t=>{
+    const raw=String(t.tid||'').trim().toUpperCase();
+    const m=raw.match(/^T(\d{1,6})\.TR$/);
+    if(m){
+      const n=m[1].padStart(6,'0');
+      t.tid='T'+n+'.'+(t.type==='RECEIVE'?'RCV':'ISS');
+      return;
+    }
+    // Normalize already-separated IDs without changing their number.
+    t.tid=normalizeTid(t.tid);
+  });
+}
+migrateTransactionIds();
+localStorage.setItem(KEY,JSON.stringify(db));
+
+function refreshItemSelects(){
+ ['rfabric','ifabric'].forEach(id=>{
+   let e=document.getElementById(id);if(!e)return;
+   let v=e.value;
+   e.innerHTML='<option value="">Select Item</option>'+db.fabrics.map(f=>'<option>'+esc(f)+'</option>').join('');
+   if(db.fabrics.includes(v))e.value=v;
+ });
+ let ifab=document.getElementById('ifabric');
+ if(ifab)ifab.onchange=refreshIssueColors;
+ renderItems();refreshIssueColors();
+}
+function allColors(){
+  const deleted=new Set(db.deletedColors.map(x=>String(x).toLowerCase()));
+  return [...new Set([
+    ...COMMON_COLORS,
+    ...db.colors.map(x=>x.color).filter(Boolean)
+  ])].filter(x=>!deleted.has(String(x).toLowerCase())).sort((a,b)=>a.localeCompare(b));
+}
+
+function refreshColorItemSelect(){
+  let e=document.getElementById('colorItem');
+  if(!e)return;
+  let v=e.value;
+  e.innerHTML='<option value="">Select Item</option>'+db.fabrics.map(f=>'<option>'+esc(f)+'</option>').join('');
+  if(db.fabrics.includes(v))e.value=v;
+  refreshColorPicker();
+}
+
+function refreshColorPicker(){
+  let c=document.getElementById('colorSelect');
+  if(!c)return;
+  let v=c.value;
+  c.innerHTML='<option value="">Select Color</option>'+allColors().map(x=>'<option>'+esc(x)+'</option>').join('');
+  if(allColors().includes(v))c.value=v;
+}
+
+function refreshIssueColors(){
+  let c=document.getElementById('icolor');
+  if(!c)return;
+  let v=c.value;
+  c.innerHTML='<option value="">Select Color</option>'+allColors().map(x=>'<option>'+esc(x)+'</option>').join('');
+  if(allColors().includes(v))c.value=v;
+}
+
+function addItem(){
+ let f=val('newItem').trim();
+ if(!f)return msg('Fabric Name is required.',false);
+ let existing=db.fabrics.some(x=>String(x).toLowerCase()===f.toLowerCase());
+ if(existing)return msg('یہ Fabric پہلے سے موجود ہے۔',false);
+ // If a previously deleted standard fabric is added again, allow it back.
+ db.deletedFabrics=db.deletedFabrics.filter(x=>String(x).toLowerCase()!==f.toLowerCase());
+ db.fabrics.push(f);
+ db.fabrics=[...new Set(db.fabrics)];
+ localStorage.setItem(KEY,JSON.stringify(db));
+ document.getElementById('newItem').value='';
+ refreshItemSelects();
+ renderItems();
+ msg('نیا Fabric کامیابی سے Add ہوگیا۔');
+}
+
+function addColor(){
+ let color=val('newColor').trim();
+ if(!color)return msg('Color Name لکھیں۔',false);
+ const existing=allColors().some(x=>String(x).toLowerCase()===color.toLowerCase());
+ if(existing)return msg('یہ Color پہلے سے موجود ہے۔',false);
+ db.deletedColors=db.deletedColors.filter(x=>String(x).toLowerCase()!==color.toLowerCase());
+ // Global custom Color; existing item-specific custom colors remain supported.
+ db.colors.push({item:'',color});
+ localStorage.setItem(KEY,JSON.stringify(db));
+ document.getElementById('newColor').value='';
+ refreshItemSelects();
+ refreshColorPicker();
+ refreshIssueColors();
+ renderColors();
+ msg('نیا Color کامیابی سے Add ہوگیا۔');
+}
+function deleteItem(f){
+ if(db.transactions.some(t=>String(t.fabric||'').toLowerCase()===String(f).toLowerCase()))
+   return msg('یہ Fabric پہلے ہی transaction میں استعمال ہو چکا ہے، اس لیے delete نہیں کیا جا سکتا۔',false);
+ if(!db.deletedFabrics.some(x=>String(x).toLowerCase()===String(f).toLowerCase())) db.deletedFabrics.push(f);
+ db.fabrics=db.fabrics.filter(x=>String(x).toLowerCase()!==String(f).toLowerCase());
+ db.colors=db.colors.filter(x=>String(x.item||'').toLowerCase()!==String(f).toLowerCase());
+ localStorage.setItem(KEY,JSON.stringify(db));
+ refreshItemSelects();renderItems();msg('Fabric delete ہوگیا۔');
+}
+function renderItems(){
+ let b=document.getElementById('fabricBody');if(!b)return;
+ b.innerHTML=db.fabrics.map(f=>{
+   let colors=db.colors.filter(x=>x.item===f).map(x=>x.color).join(', ');
+   return '<tr><td>'+esc(f)+'</td><td>'+esc(colors||'-')+'</td><td><button onclick="deleteItem('+JSON.stringify(f)+')">Delete</button></td></tr>';
+ }).join('');
+ renderColors();
+ refreshColorItemSelect();
+ refreshColorPicker();
+}
+
+function renderColors(){
+ let b=document.getElementById('colorBody');if(!b)return;
+ const deleted=new Set(db.deletedColors.map(x=>String(x).toLowerCase()));
+ const colors=[...new Set([...COMMON_COLORS,...db.colors.map(x=>x.color).filter(Boolean)])]
+   .filter(x=>!deleted.has(String(x).toLowerCase()))
+   .sort((a,b)=>a.localeCompare(b));
+ b.innerHTML=colors.length ? colors.map(c=>
+   '<tr><td>'+esc(c)+'</td><td><button onclick="deleteColor('+JSON.stringify(c)+')">Delete</button></td></tr>'
+ ).join('') : '<tr><td colspan="2">ابھی کوئی Color موجود نہیں</td></tr>';
+}
+
+function deleteColor(color){
+ if(!color)return;
+ const name=String(color).trim();
+ // Keep history intact, but hide this Color from the master and selectors.
+ if(!db.deletedColors.some(x=>String(x).toLowerCase()===name.toLowerCase())) db.deletedColors.push(name);
+ db.colors=db.colors.filter(x=>String(x.color||'').toLowerCase()!==name.toLowerCase());
+ localStorage.setItem(KEY,JSON.stringify(db));
+ refreshItemSelects();
+ refreshColorItemSelect();
+ refreshColorPicker();
+ refreshIssueColors();
+ renderColors();
+ msg('Color delete ہوگیا۔');
+}
+
+function setNewIds(){document.getElementById('rtid').value=nextTransactionId('RECEIVE');document.getElementById('itid').value=nextTransactionId('ISSUE')}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));updateStats();renderStock();refreshItemSelects();refreshColorItemSelect();refreshColorPicker();setNewIds();addLotItem();updateLotTotal();}
+function show(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='stock')renderStock();updateStats();}
+function msg(t,ok=true){let m=document.getElementById('msg');m.textContent=t;m.className='msg '+(ok?'ok':'err');m.style.display='block';setTimeout(()=>m.style.display='none',2500)}
+function val(id){return document.getElementById(id).value.trim()}
+function receive(){
+ let fabric=val('rfabric'),qty=parseFloat(val('rqty'));
+ if(!fabric)return msg('Fabric Name لازمی ہے۔',false);
+ if(!Number.isFinite(qty)||qty<=0)return msg('Quantity لازمی ہے اور صفر سے زیادہ ہونی چاہیے۔',false);
+ let supplier=val('rsupplier'),lot=val('rlot');
+ db.transactions.push({
+   id:Date.now(),
+   tid:normalizeTid(val('rtid')),
+   date:val('rdate'),
+   type:'RECEIVE',
+   no:val('rno'),
+   fabric:fabric,
+   color:'',
+   supplier:supplier,
+   lot:lot,
+   qty:qty,
+   unit:'Kg'
+ });
+ localStorage.setItem(KEY,JSON.stringify(db));
+ document.getElementById('rqty').value='';
+ updateStats();renderStock();refreshItemSelects();setNewIds();
+ msg('Fabric Receive کامیابی سے محفوظ ہوگیا۔');
+}
+function addLotItem(fabric='',kg=''){
+ let wrap=document.getElementById('lotItems');
+ let row=document.createElement('div');row.className='lotrow';
+ row.innerHTML='<select class="lotfabric"><option value="">Select Item</option>'+db.fabrics.map(f=>'<option>'+esc(f)+'</option>').join('')+'</select>'+
+ '<input class="lotkg" type="number" min="0" step="0.01" placeholder="KG">'+
+ '<button type="button" class="removeLot" onclick="this.closest(\'.lotrow\').remove();updateLotTotal()">×</button>';
+ wrap.appendChild(row);
+ if(fabric)row.querySelector('.lotfabric').value=fabric;
+ if(kg)row.querySelector('.lotkg').value=kg;
+}
+
+function updateLotTotal(){
+ let t=[...document.querySelectorAll('.lotkg')].reduce((a,x)=>a+(parseFloat(x.value)||0),0);
+ let el=document.getElementById('lotTotal');if(el)el.textContent='Total: '+t.toFixed(2)+' KG';
+}
+
+function getLotItems(){
+ return [...document.querySelectorAll('.lotrow')].map(r=>({fabric:r.querySelector('.lotfabric').value,kg:parseFloat(r.querySelector('.lotkg').value)||0})).filter(x=>x.fabric&&x.kg>0);
+}
+function issue(){
+ let lot=val('ilot'),items=getLotItems(),total=items.reduce((a,x)=>a+x.kg,0);
+ if(!lot)return msg('Lot Number لازمی ہے۔',false);
+ if(!items.length)return msg('کم از کم ایک Item اور KG درج کریں۔',false);
+ // Check the combined quantity for each Fabric so two rows of the same
+ // Fabric cannot together exceed the available stock.
+ const requested={};
+ items.forEach(x=>{
+   const key=x.fabric.toLowerCase();
+   requested[key]=(requested[key]||0)+x.kg;
+ });
+ for(const key of Object.keys(requested)){
+   const label=items.find(x=>x.fabric.toLowerCase()===key).fabric;
+   let available=getStock().filter(y=>y.fabric.toLowerCase()===key)
+     .reduce((a,y)=>a+y.stock,0);
+   if(requested[key]>available)return msg(label+' کا Stock کافی نہیں۔ Available: '+available.toFixed(2)+' Kg',false);
+ }
+ // Save each issued item as its own ISSUE transaction. All rows share the
+ // same Issue Transaction ID and the entered Issue Lot No.
+ let tid=normalizeTid(val('itid')), date=val('idate'), no=val('ino'), color=val('icolor'), to=val('ito'), tooltip=val('itooltip'), remark=val('iremark');
+ items.forEach((x,idx)=>{
+   db.transactions.push({id:Date.now()+idx,tid,date,type:'ISSUE',no,fabric:x.fabric,color,lot,qty:x.kg,unit:'Kg',to,tooltip,remark});
+ });
+ save();document.getElementById('lotItems').innerHTML='';addLotItem();document.getElementById('iqty').value='';setNewIds();msg('Lot Issue کامیابی سے محفوظ ہوگیا۔');
+}
+
+function getStock(){
+ // Receiving stock is maintained by Fabric (not by the Issue Lot No.).
+ // Issue Lot No. is the outgoing/issued lot and should not create a separate
+ // negative stock row. This keeps stock correct even when Receive Lot and
+ // Issue Lot numbers are different.
+ let map={};
+ db.transactions.forEach(t=>{
+   let unit=t.unit||'Kg';
+   let k=[String(t.fabric||''),unit].join('|');
+   if(!map[k])map[k]={fabric:t.fabric,color:'',lot:'',unit,stock:0};
+   map[k].stock += t.type==='RECEIVE'?Number(t.qty||0):-Number(t.qty||0);
+ });
+ return Object.values(map).filter(x=>x.stock!==0);
+}
+function renderStock(){
+ let q=(document.getElementById('search')?.value||'').toLowerCase();
+ let rows=getStock().filter(x=>[x.fabric,x.color,x.lot,x.unit].join(' ').toLowerCase().includes(q));
+ document.getElementById('stockBody').innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.fabric)}</td><td>${esc(x.color)}</td><td>${esc(x.lot)}</td><td>${esc(x.unit)}</td><td><b>${x.stock.toFixed(2)}</b></td></tr>`).join(''):'<tr><td colspan="5">کوئی Stock نہیں</td></tr>';
+ const groups=[];
+ const byId=new Map();
+ db.transactions.slice().reverse().forEach(t=>{
+   const id=normalizeTid(t.tid||t.no||'');
+   if(!id)return;
+   if(!byId.has(id)){const g={id,type:t.type,date:t.date,no:t.no,party:t.type==='RECEIVE'?(t.supplier||''):(t.to||''),qty:0,items:[]};byId.set(id,g);groups.push(g);}
+   const g=byId.get(id);
+   g.qty+=Number(t.qty||0);
+   g.items.push((t.fabric||'-')+(t.color?' / '+t.color:''));
+ });
+ document.getElementById('historyBody').innerHTML=groups.length?groups.map(g=>`<tr><td><b>${esc(g.id)}</b></td><td>${esc(g.date||'')}</td><td>${g.type==='RECEIVE'?'Receive':'Issue'}</td><td>${esc([...new Set(g.items)].join(', '))}</td><td>${g.qty.toFixed(2)} Kg</td><td>${esc(g.party||'-')}<br>${esc(g.no||'-')}</td><td><button type="button" onclick="printTransaction(${JSON.stringify(g.id)})">🖨 Print</button></td><td><button type="button" onclick="shareTransaction(${JSON.stringify(g.id)})">📤 Share</button></td></tr>`).join(''):'<tr><td colspan="8">کوئی Transaction نہیں</td></tr>';
+}
+function shareTransactionById(){
+  const tid=val('printTid');
+  if(!tid)return msg('Transaction ID لکھیں۔',false);
+  shareTransaction(normalizeTid(tid));
+}
+function transactionShareData(tid){
+  const id=normalizeTid(tid);
+  const rows=findTransactionRows(id);
+  if(!rows.length)return null;
+  const first=rows[0];
+  const types=new Set(rows.map(r=>r.type));
+  if(types.size!==1)return null;
+  const type=first.type==='RECEIVE'?'FABRIC RECEIVING':'FABRIC ISSUE';
+  const line='━━━━━━━━━━━━━━━━━━━━━━━━';
+  const lines=[
+    '📦 ITEM STOCK MANAGER', line, type, '',
+    'Transaction ID : '+id,
+    'Date           : '+(first.date||'-'),
+    (first.type==='RECEIVE'?'Receive No.    : ':'Issue No.      : ')+(first.no||'-'),
+    first.type==='RECEIVE'?'Supplier       : '+(first.supplier||'-'):'Issued To      : '+(first.to||'-'),
+    '', 'ITEM DETAILS', line
+  ];
+  rows.forEach((t,i)=>{
+    lines.push((i+1)+'. '+(t.fabric||'-'));
+    lines.push('   Color : '+(t.color||'-')+' | Lot : '+(t.lot||'-'));
+    lines.push('   Qty   : '+Number(t.qty||0).toFixed(2)+' '+(t.unit||'Kg'));
+    lines.push(first.type==='RECEIVE'?'   Supplier : '+(t.supplier||'-'):'   Issued To: '+(t.to||'-'));
+    lines.push('');
+  });
+  lines.push(line,'TOTAL : '+rows.reduce((a,t)=>a+Number(t.qty||0),0).toFixed(2)+' '+(first.unit||'Kg'),line,'Thank you.');
+  return {id,type,text:lines.join('\n'),rows,first};
+}
+async function shareTransaction(tid){
+  const data=transactionShareData(tid);
+  if(!data)return msg('یہ Transaction ID نہیں ملی۔',false);
+  try{
+    // Share clean text directly so WhatsApp/Messenger receives a readable record.
+    if(navigator.share){
+      await navigator.share({title:'Transaction '+data.id,text:data.text});
+      msg('صاف Transaction Record share ہو گیا۔',true);
+    }else{
+      await navigator.clipboard.writeText(data.text);
+      msg('Share support نہیں ہے، صاف record clipboard میں copy ہو گیا۔',true);
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+    try{await navigator.clipboard.writeText(data.text);msg('Share نہیں ہو سکا، صاف record clipboard میں copy کر دیا گیا۔',true);}
+    catch(_){msg('Share نہیں ہو سکا۔',false);}
+  }
+}
+function printTransactionById(){
+  const tid=val('printTid');
+  if(!tid)return msg('Transaction ID لکھیں۔',false);
+  printTransaction(normalizeTid(tid));
+}
+function printTransaction(tid){
+  const id=normalizeTid(tid);
+  if(!id)return msg('Transaction ID موجود نہیں۔',false);
+  const rows=findTransactionRows(id);
+  if(!rows.length)return msg('یہ Transaction ID نہیں ملی۔',false);
+  const first=rows[0];
+  const types=new Set(rows.map(r=>r.type));
+  if(types.size!==1)return msg('اس Transaction ID میں مختلف قسم کی entries موجود ہیں۔ پہلے Backup لیں اور اسے درست کریں۔',false);
+  const type=first.type==='RECEIVE'?'RECEIVING':'ISSUE';
+  const title=type==='RECEIVING'?'Fabric Receiving':'Fabric Issue';
+  const itemRows=rows.map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.fabric||'')}</td><td>${esc(t.color||'')}</td><td>${esc(t.lot||'')}</td><td>${Number(t.qty||0).toFixed(2)} ${esc(t.unit||'Kg')}</td><td>${esc(t.type==='RECEIVE'?(t.supplier||''):(t.to||''))}</td></tr>`).join('');
+  const total=rows.reduce((a,t)=>a+Number(t.qty||0),0);
+  const w=window.open('','_blank','width=800,height=700');
+  if(!w)return msg('Print window نہیں کھل سکی۔ Browser میں pop-up اجازت دیں۔',false);
+  w.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${esc(id)}</title><style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{text-align:center;margin:0 0 8px}h2{text-align:center;margin:0 0 20px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:9px;text-align:center}th{background:#eee}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:15px}.total{text-align:left;font-weight:bold;margin-top:15px}@media print{button{display:none}body{margin:10mm}}</style></head><body><h1>Item Stock Manager</h1><h2>${title}</h2><div class="meta"><div><b>Transaction ID:</b> ${esc(id)}</div><div><b>Date:</b> ${esc(first.date||'')}</div><div><b>Receive/Issue No:</b> ${esc(first.no||'')}</div><div><b>Color:</b> ${esc(first.color||'-')}</div></div><table><thead><tr><th>#</th><th>Fabric</th><th>Color</th><th>Lot No.</th><th>Quantity</th><th>${first.type==='RECEIVE'?'Supplier':'Issued To'}</th></tr></thead><tbody>${itemRows}</tbody></table><div class="total">Total: ${total.toFixed(2)} ${esc(first.unit||'Kg')}</div><p style="margin-top:30px">Printed: ${new Date().toLocaleString()}</p><script>window.onload=function(){window.focus();setTimeout(function(){window.print();},300)}<\/script></body></html>`);
+  w.document.close();
+}
+function updateStats(){let s=getStock();document.getElementById('sItems').textContent=s.length;document.getElementById('sStock').textContent=s.reduce((a,x)=>a+x.stock,0).toFixed(2);document.getElementById('sRec').textContent=db.transactions.filter(x=>x.type==='RECEIVE').length;document.getElementById('sIss').textContent=db.transactions.filter(x=>x.type==='ISSUE').length}
+function backup(){
+ let payload=JSON.stringify(db,null,2);
+ let blob=new Blob([payload],{type:'application/json'});
+ let a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='fabric-backup-'+today+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ let s=document.getElementById('backupStatus');if(s)s.textContent='Backup: ابھی Download کیا گیا';
+ msg('Backup فائل Download ہوگئی۔');
+}
+function restore(e){
+ let f=e.target.files[0];if(!f)return;
+ let r=new FileReader();
+ r.onload=()=>{
+  try{
+   let x=JSON.parse(r.result);
+   if(!Array.isArray(x.transactions)||!Array.isArray(x.fabrics))throw 0;
+   if(!Array.isArray(x.colors))x.colors=[];
+   db=x;localStorage.setItem(KEY,JSON.stringify(db));
+   save();
+   let s=document.getElementById('backupStatus');if(s)s.textContent='Backup: Restore ہوگیا';
+   msg('Backup کامیابی سے Restore ہوگیا۔');
+  }catch(_){msg('Backup فائل درست نہیں ہے۔',false)}
+  e.target.value='';
+ };
+ r.readAsText(f);
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+updateStats();renderStock();refreshItemSelects();refreshColorItemSelect();refreshColorPicker();renderColors();setNewIds();addLotItem();updateLotTotal();
+
+// PWA installation: works natively only when served from an installable HTTPS origin.
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const b=document.getElementById('installApp');
+  if(b)b.textContent='📱 Install Fabric Stock Manager';
+  const s=document.getElementById('installStatus');
+  if(s)s.textContent='Install prompt تیار ہے۔ اوپر بٹن دبائیں۔';
+});
+window.addEventListener('appinstalled',()=>{
+  deferredInstallPrompt=null;
+  const b=document.getElementById('installApp');
+  if(b){b.textContent='✓ Fabric Stock Manager Installed';b.disabled=true;}
+  const s=document.getElementById('installStatus');
+  if(s)s.textContent='App Home Screen پر install ہوگئی ہے۔';
+});
+const installBtn=document.getElementById('installApp');
+function isStandalone(){return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;}
+function updateInstallUi(){
+  const s=document.getElementById('installStatus');
+  if(isStandalone()){
+    if(installBtn){installBtn.textContent='✓ App پہلے ہی Home Screen پر Installed ہے';installBtn.disabled=true;}
+    if(s)s.textContent='Fabric Stock Manager اب Home Screen سے App کی طرح چل رہا ہے۔';
+    return;
+  }
+  if(location.protocol==='file:' || location.protocol==='content:'){
+    if(s)s.innerHTML='یہ downloaded/local HTML فائل ہے۔ Android/Chrome اس حالت میں native PWA Install Prompt نہیں دیتا۔ <b>اصل Install App</b> کے لیے اسے HTTPS ویب سائٹ سے کھولنا ضروری ہے۔';
+  }
+}
+if(installBtn)installBtn.addEventListener('click',async()=>{
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    try{await deferredInstallPrompt.userChoice;}catch(_){ }
+    deferredInstallPrompt=null;
+    return;
+  }
+  const s=document.getElementById('installStatus');
+  if(location.protocol==='https:'){
+    if(s)s.innerHTML='Browser نے ابھی native install prompt دستیاب نہیں کیا۔ Chrome کے ⋮ menu میں <b>Add to Home screen</b> یا <b>Install app</b> تلاش کریں۔';
+    msg('Chrome menu سے Add to Home screen / Install app منتخب کریں۔',false);
+  }else{
+    if(s)s.innerHTML='یہ downloaded <b>'+esc(location.protocol)+' </b> HTML ہے۔ Native PWA install یہاں ممکن نہیں۔ <b>Installable App</b> کے لیے V25 PWA package کو HTTPS ویب سائٹ پر چلائیں، پھر Chrome سے Install app کریں۔';
+    msg('Local/downloaded HTML سے native PWA install ممکن نہیں۔',false);
+  }
+});
+updateInstallUi();
+
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
